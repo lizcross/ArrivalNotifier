@@ -10,8 +10,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 
 import com.google.android.gms.location.Geofence;
+
+import java.util.Random;
 
 /**
  * Created by liz on 26/08/14.
@@ -20,6 +23,13 @@ public class MessageEntryFragment extends Fragment {
 
     private GeofenceServices geofenceServices = null;
     private Context context;
+    private Button mAddGeofenceButton;
+    private EditText mLatitudeEditText;
+    private EditText mLongitudeEditText;
+    private EditText mPhoneNumberEditText;
+    private EditText mMessageEditText;
+
+    private Random mRandom = new Random();
 
     public static MessageEntryFragment getInstance() {
         MessageEntryFragment newFragment = new MessageEntryFragment();
@@ -44,15 +54,30 @@ public class MessageEntryFragment extends Fragment {
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_message_entry, container, false);
 
-        Button addGeofenceButton = (Button) rootView.findViewById(R.id.addGeofenceButton);
-        addGeofenceButton.setOnClickListener(new View.OnClickListener() {
+        mAddGeofenceButton = (Button) rootView.findViewById(R.id.addGeofenceButton);
+        mAddGeofenceButton.setOnClickListener(createAddGeofenceButtonListener());
+
+        mLatitudeEditText = (EditText) rootView.findViewById(R.id.latitude);
+        mLongitudeEditText = (EditText) rootView.findViewById(R.id.longitude);
+        mPhoneNumberEditText = (EditText) rootView.findViewById(R.id.phoneNumber);
+        mMessageEditText = (EditText) rootView.findViewById(R.id.message);
+
+        return rootView;
+    }
+
+    private View.OnClickListener createAddGeofenceButtonListener() {
+        return new View.OnClickListener() {
+
             @Override
             public void onClick(View v) {
+                double latitudeValue = Double.parseDouble(mLatitudeEditText.getText().toString());
+                double longitudeValue = Double.parseDouble(mLongitudeEditText.getText().toString());
                 Geofence sampleGeofence = new Geofence.Builder()
-                        .setRequestId("home")
-                        .setCircularRegion(50.112738, -122.954449, 100.0f)
+                        .setRequestId("home" + mRandom.nextInt())
+                        .setCircularRegion(latitudeValue, longitudeValue, 20.0f)
+//                        .setCircularRegion(50.129130, -122.965526, 100.0f)
+//                        .setCircularRegion(50.112738, -122.954449, 100.0f)
                         .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
-                        .setLoiteringDelay(60000)
                         .setExpirationDuration(3600000).build();
 
                 if (null != geofenceServices) {
@@ -64,8 +89,7 @@ public class MessageEntryFragment extends Fragment {
                     });
                 }
             }
-        });
-        return rootView;
+        };
     }
 
     @Override
