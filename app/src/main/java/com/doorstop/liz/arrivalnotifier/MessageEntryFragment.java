@@ -75,8 +75,6 @@ public class MessageEntryFragment extends Fragment {
                 Geofence sampleGeofence = new Geofence.Builder()
                         .setRequestId("home" + mRandom.nextInt())
                         .setCircularRegion(latitudeValue, longitudeValue, 20.0f)
-//                        .setCircularRegion(50.129130, -122.965526, 100.0f)
-//                        .setCircularRegion(50.112738, -122.954449, 100.0f)
                         .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
                         .setExpirationDuration(3600000).build();
 
