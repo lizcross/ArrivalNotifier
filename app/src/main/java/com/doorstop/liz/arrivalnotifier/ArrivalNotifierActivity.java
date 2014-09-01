@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -18,7 +19,7 @@ import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.LocationClient;
 
 
-public class ArrivalNotifierActivity extends FragmentActivity {
+public class ArrivalNotifierActivity extends FragmentActivity implements NotificationFragment.NotificationFragmentListener {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,11 +37,11 @@ public class ArrivalNotifierActivity extends FragmentActivity {
         if (hasExtra || (transitionType == Geofence.GEOFENCE_TRANSITION_ENTER) ||
                     (transitionType == Geofence.GEOFENCE_TRANSITION_EXIT)) {
             getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, NotificationFragment.getInstance())
+                    .add(R.id.container, NotificationFragment.getInstance(), NotificationFragment.TAG)
                     .commit();
         } else if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, MessageEntryFragment.getInstance())
+                    .add(R.id.container, MessageEntryFragment.getInstance(), MessageEntryFragment.TAG)
                     .commit();
         }
     }
@@ -63,6 +64,15 @@ public class ArrivalNotifierActivity extends FragmentActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onDismiss() {
+        FragmentManager manager = getSupportFragmentManager();
+        manager.beginTransaction()
+                .remove(manager.findFragmentByTag(NotificationFragment.TAG))
+                .add(R.id.container, MessageEntryFragment.getInstance(), MessageEntryFragment.TAG)
+                .commit();
     }
 
     /**

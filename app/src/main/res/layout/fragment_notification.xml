@@ -9,4 +9,10 @@
         android:layout_height="wrap_content"
         android:text="You have arrived"/>
 
+    <Button
+        android:id="@+id/dismissButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Dismiss"/>
+
 </LinearLayout>

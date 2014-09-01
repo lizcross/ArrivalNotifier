@@ -21,6 +21,8 @@ import java.util.Random;
  */
 public class MessageEntryFragment extends Fragment {
 
+    public static final String TAG = MessageEntryFragment.class.getSimpleName();
+
     private GeofenceServices geofenceServices = null;
     private Context context;
     private Button mAddGeofenceButton;
