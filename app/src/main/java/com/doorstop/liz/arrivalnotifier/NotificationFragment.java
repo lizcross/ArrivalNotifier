@@ -51,7 +51,10 @@ public class NotificationFragment extends Fragment{
         mDismissButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mNotificationFragmentListener.onDismiss();
+                if(null != mNotificationFragmentListener) {
+                    mNotificationFragmentListener.onDismiss();
+                }
+
             }
         });
         return rootView;

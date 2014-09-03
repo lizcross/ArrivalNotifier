@@ -23,8 +23,8 @@ public class MessageEntryFragment extends Fragment {
 
     public static final String TAG = MessageEntryFragment.class.getSimpleName();
 
-    private GeofenceServices geofenceServices = null;
-    private Context context;
+    private GeofenceServices mGeofenceServices = null;
+    private Context mContext;
     private Button mAddGeofenceButton;
     private EditText mLatitudeEditText;
     private EditText mLongitudeEditText;
@@ -46,8 +46,8 @@ public class MessageEntryFragment extends Fragment {
         super.onAttach(activity);
 
         if (null != activity) {
-            geofenceServices = new GeofenceServices(activity);
-            context = activity;
+            mGeofenceServices = new GeofenceServices(activity);
+            mContext = activity;
         }
     }
 
@@ -80,8 +80,8 @@ public class MessageEntryFragment extends Fragment {
                         .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
                         .setExpirationDuration(3600000).build();
 
-                if (null != geofenceServices) {
-                    geofenceServices.addGeofence(sampleGeofence, getNotificationPendingIntent(), new GeofenceServices.GeofenceServicesResultListener() {
+                if (null != mGeofenceServices) {
+                    mGeofenceServices.addGeofence(sampleGeofence, getNotificationPendingIntent(), new GeofenceServices.GeofenceServicesResultListener() {
                         @Override
                         public void done(String geofenceRefId, GeofenceServicesException e) {
                             //tbd
@@ -96,7 +96,7 @@ public class MessageEntryFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
 
-        geofenceServices = null;
+        mGeofenceServices = null;
     }
 
     /*
@@ -105,22 +105,22 @@ public class MessageEntryFragment extends Fragment {
      */
     private PendingIntent getTransitionPendingIntent() {
         // Create an explicit Intent
-        Intent intent = new Intent(context,
+        Intent intent = new Intent(mContext,
                 GeofenceTransitionsIntentService.class);
         /*
          * Return the PendingIntent
          */
         return PendingIntent.getService(
-                context,
+                mContext,
                 0,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
     private PendingIntent getNotificationPendingIntent() {
-        Intent intent = new Intent(context, ArrivalNotifierActivity.class);
+        Intent intent = new Intent(mContext, ArrivalNotifierActivity.class);
         intent.putExtra("GEOFENCE_NOTIFICATION", "Arrived");
 
-        return PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        return PendingIntent.getActivity(mContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
     }
 }
