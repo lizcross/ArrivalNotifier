@@ -1,20 +1,18 @@
 package com.doorstop.liz.arrivalnotifier;
 
-import android.app.ActionBar;
-import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.Cursor;
+import android.location.Location;
 import android.os.Bundle;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.os.Build;
 
 import com.doorstop.liz.arrivalnotifier.dbServices.RepositoryActions;
 import com.google.android.gms.location.Geofence;
@@ -23,10 +21,11 @@ import com.google.android.gms.location.LocationClient;
 import java.util.List;
 
 
-public class ArrivalNotifierActivity extends FragmentActivity implements NotificationFragment.NotificationFragmentListener, MessageEntryFragment.MessageEntryListener, MessagesListFragment.MessageListListener {
+public class ArrivalNotifierActivity extends FragmentActivity implements MessageEntryFragment.MessageEntryListener, MessagesListFragment.MessageListListener {
 
     private RepositoryActions<GeofenceSms> mGeofenceSmsRepository;
     private RepositoryActions<GeofenceModel> mGeofenceModelRepository;
+    private static final String ALERT_DIALOG_TAG = "Alert_Dialog";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,22 +38,22 @@ public class ArrivalNotifierActivity extends FragmentActivity implements Notific
         setContentView(R.layout.activity_arrival_notifier);
 
         Log.d("ArrivalNotifierActivity", "entered onCreate method");
+
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.container, MessagesListFragment.getInstance(), MessagesListFragment.TAG)
+                .commit();
+
         Intent intent = getIntent();
         boolean hasExtra = intent.hasExtra("GEOFENCE_NOTIFICATION");
 
         int transitionType =
                 LocationClient.getGeofenceTransition(intent);
+        Location arrivalLocation = LocationClient.getTriggeringLocation(intent);
 
             // Test that a valid transition was reported
         if (hasExtra || (transitionType == Geofence.GEOFENCE_TRANSITION_ENTER) ||
                     (transitionType == Geofence.GEOFENCE_TRANSITION_EXIT)) {
-            getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, NotificationFragment.getInstance(), NotificationFragment.TAG)
-                    .commit();
-        } else if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, MessageEntryFragment.getInstance(), MessageEntryFragment.TAG)
-                    .commit();
+            displayAlertDialog("You have arrived at " + arrivalLocation);
         }
     }
 
@@ -87,15 +86,6 @@ public class ArrivalNotifierActivity extends FragmentActivity implements Notific
     }
 
     @Override
-    public void onDismiss() {
-        FragmentManager manager = getSupportFragmentManager();
-        manager.beginTransaction()
-                .remove(manager.findFragmentByTag(NotificationFragment.TAG))
-                .add(R.id.container, MessageEntryFragment.getInstance(), MessageEntryFragment.TAG)
-                .commit();
-    }
-
-    @Override
     public Long persistGeofenceSms(GeofenceSms geofenceSms) {
         return mGeofenceSmsRepository.insertOrUpdate(geofenceSms);
     }
@@ -103,6 +93,12 @@ public class ArrivalNotifierActivity extends FragmentActivity implements Notific
     @Override
     public void deleteGeofenceModel(long id) {
         mGeofenceModelRepository.deleteItemWithId(id);
+    }
+
+    @Override
+    public void displayAlertDialog(String title) {
+        SingleMessageAlertDialog alertDialog = SingleMessageAlertDialog.getInstance(title);
+        alertDialog.show(getSupportFragmentManager(), ALERT_DIALOG_TAG);
     }
 
     @Override
@@ -115,19 +111,42 @@ public class ArrivalNotifierActivity extends FragmentActivity implements Notific
         return mGeofenceSmsRepository.getAllItems();
     }
 
-    /**
-     * A placeholder fragment containing a simple view.
-     */
-    public static class PlaceholderFragment extends Fragment {
+    public void dismissAlertDialog() {
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        Fragment alertDialogFrag = getSupportFragmentManager().findFragmentByTag(ALERT_DIALOG_TAG);
+        if (alertDialogFrag != null) {
+            ft.remove(alertDialogFrag);
+        }
+//        ft.addToBackStack(null);
+    }
 
-        public PlaceholderFragment() {
+    public static class SingleMessageAlertDialog extends DialogFragment {
+
+        private static final String TITLE_IDENTIFIER = "title";
+
+        public static SingleMessageAlertDialog getInstance(String title) {
+            SingleMessageAlertDialog frag = new SingleMessageAlertDialog();
+            Bundle args = new Bundle();
+            args.putString(TITLE_IDENTIFIER, title);
+            frag.setArguments(args);
+            return frag;
         }
 
         @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_arrival_notifier_list, container, false);
-            return rootView;
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            String title = getArguments().getString(TITLE_IDENTIFIER);
+
+            AlertDialog alertDialog = new AlertDialog.Builder(getActivity())
+                    .setTitle(title)
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+
+                            ((ArrivalNotifierActivity) getActivity()).dismissAlertDialog();
+
+                        }
+                    }).create();
+            return alertDialog;
         }
     }
 }

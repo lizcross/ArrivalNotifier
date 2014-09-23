@@ -26,6 +26,7 @@ public class MessageEntryFragment extends Fragment {
         public Long persistGeofenceModel(GeofenceModel geofenceModel);
         public Long persistGeofenceSms(GeofenceSms geofenceSms);
         public void deleteGeofenceModel(long id);
+        public void displayAlertDialog(String title);
     }
 
     public static final String TAG = MessageEntryFragment.class.getSimpleName();
@@ -86,9 +87,20 @@ public class MessageEntryFragment extends Fragment {
 
             @Override
             public void onClick(View v) {
+                boolean geofenceAdded = true;
+
                 //Persist the geofence and message in the database
-                double latitudeValue = Double.parseDouble(mLatitudeEditText.getText().toString());
-                double longitudeValue = Double.parseDouble(mLongitudeEditText.getText().toString());
+                double latitudeValue = 0.0;
+                double longitudeValue = 0.0;
+
+                try {
+                    latitudeValue = Double.parseDouble(mLatitudeEditText.getText().toString());
+                    longitudeValue = Double.parseDouble(mLongitudeEditText.getText().toString());
+                } catch (NumberFormatException e) {
+                    geofenceAdded = false;
+                }
+
+
                 float radius = 20.0f;
                 long duration = 3600000L;
                 int transitionType = Geofence.GEOFENCE_TRANSITION_ENTER;
@@ -97,9 +109,9 @@ public class MessageEntryFragment extends Fragment {
                 //create the Geofence object using the builder and see if the values are correct
                 //if not correct then need to remove the geofence object from the db
 
-                boolean geofenceAdded = true;
 
-                if (null != messageEntryListener && null != mGeofenceServices) {
+
+                if (geofenceAdded && null != messageEntryListener && null != mGeofenceServices) {
                     GeofenceModel geofenceModel = new GeofenceModel(null, latitudeValue, longitudeValue, radius, duration, transitionType);
                     Long geofenceModelId = messageEntryListener.persistGeofenceModel(geofenceModel);
                     Geofence locationServicesGeofence = null;
@@ -143,6 +155,7 @@ public class MessageEntryFragment extends Fragment {
                     clearTextFields();
                 } else {
                     //show an error dialog
+                    messageEntryListener.displayAlertDialog("Location cannot be tracked");
                 }
 
             }
