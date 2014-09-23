@@ -101,6 +101,11 @@ public class ArrivalNotifierActivity extends FragmentActivity implements Notific
     }
 
     @Override
+    public void deleteGeofenceModel(long id) {
+        mGeofenceModelRepository.deleteItemWithId(id);
+    }
+
+    @Override
     public Long persistGeofenceModel(GeofenceModel geofenceModel) {
         return mGeofenceModelRepository.insertOrUpdate(geofenceModel);
     }

@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +25,7 @@ public class MessageEntryFragment extends Fragment {
     public interface MessageEntryListener {
         public Long persistGeofenceModel(GeofenceModel geofenceModel);
         public Long persistGeofenceSms(GeofenceSms geofenceSms);
+        public void deleteGeofenceModel(long id);
     }
 
     public static final String TAG = MessageEntryFragment.class.getSimpleName();
@@ -84,48 +86,74 @@ public class MessageEntryFragment extends Fragment {
 
             @Override
             public void onClick(View v) {
-//                double latitudeValue = Double.parseDouble(mLatitudeEditText.getText().toString());
-//                double longitudeValue = Double.parseDouble(mLongitudeEditText.getText().toString());
-//                Geofence sampleGeofence = new Geofence.Builder()
-//                        .setRequestId("home" + mRandom.nextInt())
-//                        .setCircularRegion(latitudeValue, longitudeValue, 20.0f)
-//                        .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
-//                        .setExpirationDuration(3600000).build();
-//
-//                if (null != mGeofenceServices) {
-//                    mGeofenceServices.addGeofence(sampleGeofence, getNotificationPendingIntent(), new GeofenceServices.GeofenceServicesResultListener() {
-//                        @Override
-//                        public void done(String geofenceRefId, GeofenceServicesException e) {
-//                            //tbd
-//                        }
-//                    });
-//                }
-
-
+                //Persist the geofence and message in the database
                 double latitudeValue = Double.parseDouble(mLatitudeEditText.getText().toString());
                 double longitudeValue = Double.parseDouble(mLongitudeEditText.getText().toString());
-                Geofence sampleGeofence = new Geofence.Builder()
-                        .setRequestId("home" + mRandom.nextInt())
-                        .setCircularRegion(latitudeValue, longitudeValue, 20.0f)
-                        .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
-                        .setExpirationDuration(3600000).build();
+                float radius = 20.0f;
+                long duration = 3600000L;
+                int transitionType = Geofence.GEOFENCE_TRANSITION_ENTER;
 
-                GeofenceModel geofenceModel = new GeofenceModel(null, latitudeValue, longitudeValue, 20.0f, 3600000L, Geofence.GEOFENCE_TRANSITION_ENTER);
-                if (null != messageEntryListener) {
+                //Neeed to add to DB first to get the unique id generated then we can
+                //create the Geofence object using the builder and see if the values are correct
+                //if not correct then need to remove the geofence object from the db
+
+                boolean geofenceAdded = true;
+
+                if (null != messageEntryListener && null != mGeofenceServices) {
+                    GeofenceModel geofenceModel = new GeofenceModel(null, latitudeValue, longitudeValue, radius, duration, transitionType);
                     Long geofenceModelId = messageEntryListener.persistGeofenceModel(geofenceModel);
-                    GeofenceSms geofenceSms = new GeofenceSms(null,
-                                    mPhoneNumberEditText.getText().toString(),
-                                    mMessageEditText.getText().toString(),
-                                    geofenceModelId);
-                    messageEntryListener.persistGeofenceSms(geofenceSms);
+                    Geofence locationServicesGeofence = null;
+
+                    try {
+                        locationServicesGeofence = new Geofence.Builder()
+                                .setRequestId(geofenceModelId + "")
+                                .setCircularRegion(latitudeValue, longitudeValue, radius)
+                                .setTransitionTypes(transitionType)
+                                .setExpirationDuration(duration).build();
+                    } catch (IllegalArgumentException e) {
+                        //delete geofenceModel from Db
+                        messageEntryListener.deleteGeofenceModel(geofenceModelId);
+                        geofenceAdded = false;
+
+                    }
+
+                    if (geofenceAdded) {
+                        //Add sms to db
+                        GeofenceSms geofenceSms = new GeofenceSms(null,
+                                mPhoneNumberEditText.getText().toString(),
+                                mMessageEditText.getText().toString(),
+                                geofenceModelId);
+                        messageEntryListener.persistGeofenceSms(geofenceSms);
+
+                        //Register Geofence with Location services
+                        mGeofenceServices.addGeofence(locationServicesGeofence, getNotificationPendingIntent(), new GeofenceServices.GeofenceServicesResultListener() {
+                            @Override
+                            public void done(String geofenceRefId, GeofenceServicesException e) {
+                                //tbd
+                                Log.d(TAG, e.getMessage());
+                            }
+                    });
+
+                    }
+                } else {
+                    geofenceAdded = false;
                 }
 
-
-
-
+                if (geofenceAdded) {
+                    clearTextFields();
+                } else {
+                    //show an error dialog
+                }
 
             }
         };
+    }
+
+    private void clearTextFields() {
+        mLatitudeEditText.setText("");
+        mLongitudeEditText.setText("");
+        mPhoneNumberEditText.setText("");
+        mMessageEditText.setText("");
     }
 
     @Override
