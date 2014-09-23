@@ -3,6 +3,7 @@ package com.doorstop.liz.arrivalnotifier;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Intent;
+import android.database.Cursor;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
@@ -15,15 +16,26 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.os.Build;
 
+import com.doorstop.liz.arrivalnotifier.dbServices.RepositoryActions;
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.LocationClient;
 
+import java.util.List;
 
-public class ArrivalNotifierActivity extends FragmentActivity implements NotificationFragment.NotificationFragmentListener {
+
+public class ArrivalNotifierActivity extends FragmentActivity implements NotificationFragment.NotificationFragmentListener, MessageEntryFragment.MessageEntryListener, MessagesListFragment.MessageListListener {
+
+    private RepositoryActions<GeofenceSms> mGeofenceSmsRepository;
+    private RepositoryActions<GeofenceModel> mGeofenceModelRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mGeofenceSmsRepository =
+                ((ArrivalNotifierApplication) getApplication()).getGeofenceSmsRepository();
+        mGeofenceModelRepository =
+                ((ArrivalNotifierApplication) getApplication()).getGeofenceModelRepository();
+
         setContentView(R.layout.activity_arrival_notifier);
 
         Log.d("ArrivalNotifierActivity", "entered onCreate method");
@@ -62,6 +74,14 @@ public class ArrivalNotifierActivity extends FragmentActivity implements Notific
         int id = item.getItemId();
         if (id == R.id.action_settings) {
             return true;
+        } else if (id == R.id.action_list) {
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.container, MessagesListFragment.getInstance(), MessagesListFragment.TAG)
+                    .commit();
+        } else if (id == R.id.action_add) {
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.container, MessageEntryFragment.getInstance(), MessageEntryFragment.TAG)
+                    .commit();
         }
         return super.onOptionsItemSelected(item);
     }
@@ -73,6 +93,21 @@ public class ArrivalNotifierActivity extends FragmentActivity implements Notific
                 .remove(manager.findFragmentByTag(NotificationFragment.TAG))
                 .add(R.id.container, MessageEntryFragment.getInstance(), MessageEntryFragment.TAG)
                 .commit();
+    }
+
+    @Override
+    public Long persistGeofenceSms(GeofenceSms geofenceSms) {
+        return mGeofenceSmsRepository.insertOrUpdate(geofenceSms);
+    }
+
+    @Override
+    public Long persistGeofenceModel(GeofenceModel geofenceModel) {
+        return mGeofenceModelRepository.insertOrUpdate(geofenceModel);
+    }
+
+    @Override
+    public List<GeofenceSms> getMessages() {
+        return mGeofenceSmsRepository.getAllItems();
     }
 
     /**

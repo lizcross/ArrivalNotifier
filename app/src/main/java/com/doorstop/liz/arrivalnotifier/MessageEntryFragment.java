@@ -21,8 +21,14 @@ import java.util.Random;
  */
 public class MessageEntryFragment extends Fragment {
 
+    public interface MessageEntryListener {
+        public Long persistGeofenceModel(GeofenceModel geofenceModel);
+        public Long persistGeofenceSms(GeofenceSms geofenceSms);
+    }
+
     public static final String TAG = MessageEntryFragment.class.getSimpleName();
 
+    private MessageEntryListener messageEntryListener = null;
     private GeofenceServices mGeofenceServices = null;
     private Context mContext;
     private Button mAddGeofenceButton;
@@ -49,6 +55,12 @@ public class MessageEntryFragment extends Fragment {
             mGeofenceServices = new GeofenceServices(activity);
             mContext = activity;
         }
+
+        try {
+            messageEntryListener = (MessageEntryListener) activity;
+        } catch (ClassCastException e) {
+            messageEntryListener = null;
+        }
     }
 
     @Override
@@ -72,6 +84,24 @@ public class MessageEntryFragment extends Fragment {
 
             @Override
             public void onClick(View v) {
+//                double latitudeValue = Double.parseDouble(mLatitudeEditText.getText().toString());
+//                double longitudeValue = Double.parseDouble(mLongitudeEditText.getText().toString());
+//                Geofence sampleGeofence = new Geofence.Builder()
+//                        .setRequestId("home" + mRandom.nextInt())
+//                        .setCircularRegion(latitudeValue, longitudeValue, 20.0f)
+//                        .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
+//                        .setExpirationDuration(3600000).build();
+//
+//                if (null != mGeofenceServices) {
+//                    mGeofenceServices.addGeofence(sampleGeofence, getNotificationPendingIntent(), new GeofenceServices.GeofenceServicesResultListener() {
+//                        @Override
+//                        public void done(String geofenceRefId, GeofenceServicesException e) {
+//                            //tbd
+//                        }
+//                    });
+//                }
+
+
                 double latitudeValue = Double.parseDouble(mLatitudeEditText.getText().toString());
                 double longitudeValue = Double.parseDouble(mLongitudeEditText.getText().toString());
                 Geofence sampleGeofence = new Geofence.Builder()
@@ -80,14 +110,20 @@ public class MessageEntryFragment extends Fragment {
                         .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
                         .setExpirationDuration(3600000).build();
 
-                if (null != mGeofenceServices) {
-                    mGeofenceServices.addGeofence(sampleGeofence, getNotificationPendingIntent(), new GeofenceServices.GeofenceServicesResultListener() {
-                        @Override
-                        public void done(String geofenceRefId, GeofenceServicesException e) {
-                            //tbd
-                        }
-                    });
+                GeofenceModel geofenceModel = new GeofenceModel(null, latitudeValue, longitudeValue, 20.0f, 3600000L, Geofence.GEOFENCE_TRANSITION_ENTER);
+                if (null != messageEntryListener) {
+                    Long geofenceModelId = messageEntryListener.persistGeofenceModel(geofenceModel);
+                    GeofenceSms geofenceSms = new GeofenceSms(null,
+                                    mPhoneNumberEditText.getText().toString(),
+                                    mMessageEditText.getText().toString(),
+                                    geofenceModelId);
+                    messageEntryListener.persistGeofenceSms(geofenceSms);
                 }
+
+
+
+
+
             }
         };
     }

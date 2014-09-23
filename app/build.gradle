@@ -17,9 +17,21 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    sourceSets {
+        main {
+            java {
+                srcDir 'src'
+                srcDir 'src-gen'
+            }
+        }
+    }
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.google.android.gms:play-services:5.0.89'
+    compile('de.greenrobot:greendao:1.3.7')
 }
+
+
