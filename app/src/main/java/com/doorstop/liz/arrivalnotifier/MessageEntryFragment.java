@@ -32,7 +32,6 @@ public class MessageEntryFragment extends Fragment {
     public static final String TAG = MessageEntryFragment.class.getSimpleName();
 
     private MessageEntryListener messageEntryListener = null;
-    private GeofenceServices mGeofenceServices = null;
     private Context mContext;
     private Button mAddGeofenceButton;
     private EditText mLatitudeEditText;
@@ -55,7 +54,6 @@ public class MessageEntryFragment extends Fragment {
         super.onAttach(activity);
 
         if (null != activity) {
-            mGeofenceServices = new GeofenceServices(activity);
             mContext = activity;
         }
 
@@ -111,11 +109,12 @@ public class MessageEntryFragment extends Fragment {
 
 
 
-                if (geofenceAdded && null != messageEntryListener && null != mGeofenceServices) {
+                if (geofenceAdded && null != messageEntryListener) {
                     GeofenceModel geofenceModel = new GeofenceModel(null, latitudeValue, longitudeValue, radius, duration, transitionType);
                     Long geofenceModelId = messageEntryListener.persistGeofenceModel(geofenceModel);
                     Geofence locationServicesGeofence = null;
 
+                    //code used to ensure validity of Geofence before we save it to the DB
                     try {
                         locationServicesGeofence = new Geofence.Builder()
                                 .setRequestId(geofenceModelId + "")
@@ -137,15 +136,7 @@ public class MessageEntryFragment extends Fragment {
                                 geofenceModelId);
                         messageEntryListener.persistGeofenceSms(geofenceSms);
 
-                        //Register Geofence with Location services
-                        mGeofenceServices.addGeofence(locationServicesGeofence, getNotificationPendingIntent(), new GeofenceServices.GeofenceServicesResultListener() {
-                            @Override
-                            public void done(String geofenceRefId, GeofenceServicesException e) {
-                                //tbd
-                                Log.d(TAG, e.getMessage());
-                            }
-                    });
-
+                        new GeofenceRegistrar(mContext).execute(geofenceSms);
                     }
                 } else {
                     geofenceAdded = false;
@@ -172,32 +163,5 @@ public class MessageEntryFragment extends Fragment {
     @Override
     public void onDetach() {
         super.onDetach();
-
-        mGeofenceServices = null;
-    }
-
-    /*
-     * Create a PendingIntent that triggers an IntentService in your
-     * app when a geofence transition occurs.
-     */
-    private PendingIntent getTransitionPendingIntent() {
-        // Create an explicit Intent
-        Intent intent = new Intent(mContext,
-                GeofenceTransitionsIntentService.class);
-        /*
-         * Return the PendingIntent
-         */
-        return PendingIntent.getService(
-                mContext,
-                0,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
-    }
-
-    private PendingIntent getNotificationPendingIntent() {
-        Intent intent = new Intent(mContext, ArrivalNotifierActivity.class);
-        intent.putExtra("GEOFENCE_NOTIFICATION", "Arrived");
-
-        return PendingIntent.getActivity(mContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
     }
 }

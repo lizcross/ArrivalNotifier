@@ -10,7 +10,6 @@ import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.LocationServices;
 
 import com.google.android.gms.common.api.*;
-import com.google.android.gms.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,12 +24,12 @@ public class GeofenceServices {
     }
 
     private GoogleApiClient mGoogleApiClient;
-    private GooglePlayServicer googlePlayServicer;
-    private Context context;
+    private GooglePlayServicer mGooglePlayServicer;
+    private Context mContext;
 
     public GeofenceServices(Context context) {
-        this.context = context;
-        googlePlayServicer = new GooglePlayServicer();
+        mContext = context;
+        mGooglePlayServicer = new GooglePlayServicer();
     }
 
     public void addGeofence(final Geofence geofenceToAdd, final PendingIntent pendingIntent, final GeofenceServicesResultListener geofenceServicesResultListener) {
@@ -92,12 +91,12 @@ public class GeofenceServices {
     private boolean connect(GoogleApiClient.ConnectionCallbacks connectionCallbacks) {
         if (null == mGoogleApiClient) {
 
-            boolean playServiceAvailable = googlePlayServicer.areGooglePlayServicesAvailable(context);
+            boolean playServiceAvailable = mGooglePlayServicer.areGooglePlayServicesAvailable(mContext);
 
             if (playServiceAvailable) {
 
                 Log.d("GeofenceServices", "Build API Client");
-                mGoogleApiClient = new GoogleApiClient.Builder(context)
+                mGoogleApiClient = new GoogleApiClient.Builder(mContext)
                         .addApi(LocationServices.API)
                         .addConnectionCallbacks(connectionCallbacks)
                         .addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {

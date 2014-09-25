@@ -6,6 +6,8 @@ import com.doorstop.liz.arrivalnotifier.dbServices.GeofenceModelRepository;
 import com.doorstop.liz.arrivalnotifier.dbServices.GeofenceSmsRepository;
 import com.doorstop.liz.arrivalnotifier.dbServices.RepositoryActions;
 
+import java.util.List;
+
 /**
  * Created by liz on 04/09/14.
  */
@@ -19,6 +21,7 @@ public class ArrivalNotifierApplication extends Application {
     public void onCreate() {
         super.onCreate();
         setupDatabase();
+        registerGeofences();
 
     }
 
@@ -41,5 +44,11 @@ public class ArrivalNotifierApplication extends Application {
             mGeofenceModelRepository = new GeofenceModelRepository(mDaoSession.getGeofenceModelDao());
         }
         return mGeofenceModelRepository;
+    }
+
+    private void registerGeofences() {
+        RepositoryActions<GeofenceSms> geofenceSmsRepo = getGeofenceSmsRepository();
+        List<GeofenceSms> geofenceSmsList = geofenceSmsRepo.getAllItems();
+        new GeofenceRegistrar(this).execute(geofenceSmsList.toArray(new GeofenceSms[0]));
     }
 }
