@@ -10,6 +10,7 @@ import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -26,6 +27,7 @@ public class ArrivalNotifierActivity extends FragmentActivity implements Message
     private RepositoryActions<GeofenceSms> mGeofenceSmsRepository;
     private RepositoryActions<GeofenceModel> mGeofenceModelRepository;
     private static final String ALERT_DIALOG_TAG = "Alert_Dialog";
+    private static final String DELETE_ALERT_DIALOG_TAG = "Delete_Alert_Dialog";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,13 +113,30 @@ public class ArrivalNotifierActivity extends FragmentActivity implements Message
         return mGeofenceSmsRepository.getAllItems();
     }
 
-    public void dismissAlertDialog() {
+    @Override
+    public void showDeleteDialog(String itemName, long id) {
+        DeleteItemAlertDialog alertDialog = DeleteItemAlertDialog.getInstance(itemName, id);
+        alertDialog.show(getSupportFragmentManager(), DELETE_ALERT_DIALOG_TAG);
+    }
+
+    public void dismissAlertDialog(String tag) {
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-        Fragment alertDialogFrag = getSupportFragmentManager().findFragmentByTag(ALERT_DIALOG_TAG);
+        Fragment alertDialogFrag = getSupportFragmentManager().findFragmentByTag(tag);
         if (alertDialogFrag != null) {
             ft.remove(alertDialogFrag);
         }
 //        ft.addToBackStack(null);
+    }
+
+    public void deleteGeofenceSmsItem(long id) {
+        GeofenceSms geofenceSmsToDelete = mGeofenceSmsRepository.getItemForId(id);
+        long geofenceModelIdToDelete = geofenceSmsToDelete.getGeofenceModelId();
+
+        mGeofenceSmsRepository.deleteItemWithId(id);
+        mGeofenceModelRepository.deleteItemWithId(geofenceModelIdToDelete);
+
+        Intent updateMessagesIntent = new Intent(MessagesListFragment.UPDATE_MESSAGES_INTENT);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(updateMessagesIntent);
     }
 
     public static class SingleMessageAlertDialog extends DialogFragment {
@@ -142,8 +161,48 @@ public class ArrivalNotifierActivity extends FragmentActivity implements Message
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
 
-                            ((ArrivalNotifierActivity) getActivity()).dismissAlertDialog();
+                            ((ArrivalNotifierActivity) getActivity()).dismissAlertDialog(ALERT_DIALOG_TAG);
 
+                        }
+                    }).create();
+            return alertDialog;
+        }
+    }
+
+    public static class DeleteItemAlertDialog extends DialogFragment {
+
+        private static final String ITEM_NAME_IDENTIFIER = "itemName";
+        private static final String GEOFENCE_SMS_ITEM_ID_IDENTIFIER = "geofenceSmsItemIdIdentifier";
+
+        public static DeleteItemAlertDialog getInstance(String itemName, long geofenceSmsItemId) {
+            DeleteItemAlertDialog frag = new DeleteItemAlertDialog();
+            Bundle args = new Bundle();
+            args.putString(ITEM_NAME_IDENTIFIER, itemName);
+            args.putLong(GEOFENCE_SMS_ITEM_ID_IDENTIFIER, geofenceSmsItemId);
+            frag.setArguments(args);
+            return frag;
+        }
+
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            Bundle arguments = getArguments();
+            String itemName = arguments.getString(ITEM_NAME_IDENTIFIER);
+            final long itemId = arguments.getLong(GEOFENCE_SMS_ITEM_ID_IDENTIFIER);
+
+            AlertDialog alertDialog = new AlertDialog.Builder(getActivity())
+                    .setTitle("Would you like to delete " + itemName)
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+
+                            ((ArrivalNotifierActivity) getActivity()).deleteGeofenceSmsItem(itemId);
+
+                        }
+                    })
+                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            ((ArrivalNotifierActivity) getActivity()).dismissAlertDialog(DELETE_ALERT_DIALOG_TAG);
                         }
                     }).create();
             return alertDialog;
